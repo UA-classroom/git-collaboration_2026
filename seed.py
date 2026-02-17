@@ -1,5 +1,7 @@
-from database import Base, engine, SessionLocal
+from database import Base, SessionLocal, engine
 from models import Product
+
+# Test
 
 Base.metadata.create_all(bind=engine)
 
