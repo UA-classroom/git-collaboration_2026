@@ -1,47 +1,62 @@
-# Collaborating with Git - Teacher Demo
+# Collaborating with Git - A realistic demo
 
-This demo simulates two developers (ua-tobias and Tobeyforce) collaborating on a FastAPI project using the feature branch workflow. You control both accounts to show students how real teamwork with git looks.
+This demo simulates two developers (ua-tobias and Tobeyforce) collaborating on a FastAPI project using the feature branch workflow. You control both accounts to show students how real teamwork with git looks. You can just replace the users with your own usernames (but you’ll need two accounts to try it out properly)
 
 ## What This Covers
 
+- Branch naming conventions
 - Feature branches
 - Pushing branches to GitHub
-- Pull requests (creating, reviewing, merging)
+- Pull requests (creating, reviewing with requested changes, pushing fixes, merging)
 - git pull (syncing changes from main and from colleague's branches)
 - Pulling with uncommitted changes (commit vs stash)
 - Merging with a dirty working directory (why you must commit first)
 - Merge conflicts (why they happen, how to resolve them)
 - git stash (saving work temporarily)
+- Cleaning up old branches
+- Squashing commits (GitHub squash merge + interactive rebase)
 - Forking workflow (brief overview)
 
-## Demo Setup (do this before class)
+## Demo Setup
+
+### Prerequisites
+
+This exercise assumes **Windows** with the following installed:
+
+- **Git for Windows** - download from https://git-scm.com
+- **VS Code**
+- A **GitHub** account (two accounts for the full demo)
+
+All terminal commands in this exercise are run in **Git Bash**, which comes bundled with Git for Windows. Git Bash gives you a Linux-style terminal on Windows - it uses forward slashes (`/`) and `~` for your home directory, so all commands work identically on Windows, Linux, and Mac.
+
+> **How to open Git Bash**: Right-click in any folder → "Open Git Bash here", or open it from the Start menu. You can also set Git Bash as the default terminal in VS Code: `Ctrl+Shift+P` → "Terminal: Select Default Profile" → "Git Bash".
 
 ### Accounts
 
 | Developer | GitHub username | Email |
-|-----------|----------------|-------|
-| ua-tobias | ua-tobias | tobias@utvecklarakademin.se |
-| Tobeyforce | Tobeyforce | tobias.fors.1993@gmail.com |
+| --- | --- | --- |
+| ua-tobias | ua-tobias | [tobias@utvecklarakademin.se](mailto:tobias@utvecklarakademin.se) |
+| Tobeyforce | Tobeyforce | [tobias.fors.1993@gmail.com](mailto:tobias.fors.1993@gmail.com) |
 
 ### 1. Create the repo on GitHub
 
-Create the repo under ua-tobias's account. Push the starter code (main.py, models.py, schemas.py, database.py, seed.py, .gitignore) to main. Then add **Tobeyforce** as a collaborator:
+Create the repo under Tobeyforce's account. Push the starter code (main.py, models.py, schemas.py, database.py, seed.py, .gitignore) to main. Then add **ua-tobias** as a collaborator:
 
-> GitHub repo → Settings → Collaborators → Add people → Tobeyforce
+> GitHub repo → Settings → Collaborators → Add people → ua-tobias
 
-Accept the invitation from Tobeyforce's account.
+Accept the invitation from ua-tobias's account.
 
 ### 2. Clone twice
 
 Two separate folders, one per "developer":
 
 ```bash
-# ua-tobias's workspace
-cd ~/projects
+# Tobeyforce's workspace
+cd ~/projects/git-colab
 # This folder already exists with the code - just make sure it's connected to the remote
 
-# Tobeyforce's workspace
-git clone <REPO_URL> ~/projects/git-colab-tobey
+# ua-tobias's workspace
+git clone <REPO_URL> ~/projects/git-colab-ua
 ```
 
 ### 3. Configure git identity per folder
@@ -49,34 +64,42 @@ git clone <REPO_URL> ~/projects/git-colab-tobey
 Each folder should commit as a different person:
 
 ```bash
-# In ua-tobias's folder
-cd ~/projects/git-colab
-git config user.name "ua-tobias"
-git config user.email "tobias@utvecklarakademin.se"
-
 # In Tobeyforce's folder
-cd ~/projects/git-colab-tobey
+cd ~/projects/git-colab
 git config user.name "Tobeyforce"
 git config user.email "tobias.fors.1993@gmail.com"
+
+# In ua-tobias's folder
+cd ~/projects/git-colab-ua
+git config user.name "ua-tobias"
+git config user.email "tobias@utvecklarakademin.se"
 ```
+
+Also configure line endings in both folders. Windows uses CRLF line endings while Linux/Mac use LF. This causes messy diffs if not handled. Run this in both folders:
+
+```bash
+git config core.autocrlf true
+```
+
+This tells git to convert line endings to LF when committing and back to CRLF when checking out - so the repo stays consistent regardless of OS.
 
 ### 4. Authentication
 
 Each clone needs to push as its respective user. Easiest approach:
 
-- **ua-tobias's clone**: use SSH or `gh auth login` with the ua-tobias account
-- **Tobeyforce's clone**: clone via HTTPS with a personal access token, or configure a second SSH key
+- **Tobeyforce's clone**: use SSH or `gh auth login` with the Tobeyforce account (repo owner)
+- **ua-tobias's clone**: clone via HTTPS with a personal access token, or configure a second SSH key
 
-Alternatively, clone Tobeyforce's copy using a PAT in the URL:
+Alternatively, clone ua-tobias's copy using a PAT in the URL:
 
 ```bash
-git clone https://Tobeyforce:<PAT>@github.com/ua-tobias/git-colab.git ~/projects/git-colab-tobey
+git clone https://ua-tobias:<PAT>@github.com/Tobeyforce/git-colab.git ~/projects/git-colab-ua
 ```
 
 ### 5. Screen layout
 
-- Two terminal windows side by side (or two VS Code windows)
-- Two browser profiles logged into each GitHub account (use incognito for the second)
+- Two VS Code windows, one opened in each folder. Each uses Git Bash as the integrated terminal (`` Ctrl+` `` to toggle terminal). Alternatively, use VS Code for one user and Cursor for the other - makes it visually obvious which developer you're acting as.
+- Two browser profiles logged into each GitHub account (use incognito or a different browser for the second)
 - Label them clearly so students can follow who is who
 
 ### 6. Verify starting point
@@ -105,6 +128,28 @@ A basic FastAPI product API. Students should already see these files on GitHub:
 
 Walk through the code briefly so students understand what the project does before you start branching.
 
+To seed the database, run:
+
+```bash
+python seed.py
+```
+
+> On some systems you may need to use `python3` instead of `python`.
+
+## Branch Naming Conventions
+
+Before we start, a quick note on branch names. Most teams follow a naming convention. The most common pattern is a prefix that describes the type of work:
+
+| Prefix | Used for | Example |
+|--------|----------|---------|
+| `feature/` | New functionality | `feature/add-search-endpoint` |
+| `bugfix/` | Fixing a bug | `bugfix/fix-null-price-crash` |
+| `hotfix/` | Urgent production fix | `hotfix/patch-auth-bypass` |
+
+Some teams also include ticket numbers: `feature/JIRA-42-add-search-endpoint`
+
+The exact convention varies per team, but the principle is the same: anyone looking at the branch list should immediately understand what each branch is for. We'll use `feature/` throughout this demo.
+
 ## Part 1: The Happy Path (no conflicts)
 
 > Goal: show the full cycle of branch → commit → push → PR → review → merge
@@ -118,7 +163,7 @@ git branch          # confirm you're on main
 git switch -c feature/get-product-by-id
 ```
 
-Explain to students: we're adding an endpoint to get a single product by its ID. Always check what branch you're on before starting work - this becomes second nature.
+Explain to students: we're adding an endpoint to get a single product by its ID. Always check what branch you're on before starting work - this becomes second nature. Notice the branch name follows the `feature/` convention - it describes what the branch does.
 
 Edit `main.py` - add this endpoint after the existing `create_product`:
 
@@ -145,6 +190,7 @@ git diff                # shows the actual line-by-line changes
 ```
 
 > Tell students: professionals run `git status` and `git diff` constantly. You want to know exactly what you're about to commit. No surprises.
+> 
 
 Stage and commit:
 
@@ -176,43 +222,80 @@ Switch to ua-tobias's browser:
 5. Click **Create pull request**
 
 > Point out to students: the code is NOT in main yet. It's just a proposal.
+> 
 
-### Tobeyforce reviews the PR
+### Tobeyforce reviews the PR and requests changes
 
 Switch to Tobeyforce's browser:
 
 1. Open the same repo → Pull requests tab → click the PR
 2. Click **Files changed** to see the diff
-3. Click the `+` icon next to the `raise HTTPException` line
-4. Leave a comment: "Good, but could we also add a message in the response for the 404?"
-5. Click **Start a review** → **Submit review** → select **Comment**
+3. Click the `+` icon next to the line with `raise HTTPException(status_code=404, detail="Product not found")`
+4. Leave a comment: "Can we also log a warning when someone requests a product that doesn't exist? Would help with debugging."
+5. Click **Start a review** → **Submit review** → select **Request changes**
 
-> Explain to students: in real teams, you'd have actual feedback. This is where discussions happen.
+> Explain to students: "Request changes" is different from just leaving a comment. It blocks the merge until the author addresses the feedback. This is how most real code reviews work - the reviewer flags things that need fixing before the code can go into main.
 
-### ua-tobias addresses the feedback
+### ua-tobias addresses the feedback with a new commit
 
-Back in ua-tobias's terminal. The endpoint already has `detail="Product not found"` so let's say ua-tobias responds on GitHub:
+Back in ua-tobias's terminal (still on the `feature/get-product-by-id` branch):
 
-1. Reply to the comment: "It's already there - the `detail` parameter in HTTPException gets returned in the response body"
-2. Click **Resolve conversation**
+```bash
+git branch    # confirm you're still on feature/get-product-by-id
+```
 
-> Show students that PRs are a conversation, not just a rubber stamp.
+Update the endpoint in `main.py` to add logging:
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+```
+
+And update the endpoint:
+
+```python
+@app.get("/products/{product_id}", response_model=ProductResponse)
+def get_product(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        logger.warning(f"Product with id {product_id} not found")
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
+```
+
+Commit and push - the PR updates automatically:
+
+```bash
+git status
+git diff
+git add -A
+git commit -m "Add warning log for missing product lookups"
+git push
+```
+
+> Point out to students: we didn't need `git push -u origin ...` again. The branch is already tracked. And the PR on GitHub now shows both commits automatically - no need to create a new PR.
+
+Back on GitHub (ua-tobias's browser), reply to the review comment: "Added a warning log, check the new commit" and click **Resolve conversation**.
 
 ### Tobeyforce approves and merges
 
 Back in Tobeyforce's browser:
 
-1. Go to the PR → **Files changed**
-2. Click **Review changes** → select **Approve** → **Submit review**
-3. Go back to the **Conversation** tab
-4. Click **Merge pull request** → **Confirm merge**
-5. Click **Delete branch** (optional but recommended)
+1. Go to the PR → notice the new commit is visible in the conversation
+2. Click **Files changed** to verify the logging was added
+3. Click **Review changes** → select **Approve** → **Submit review**
+4. Go back to the **Conversation** tab
+5. Click **Merge pull request** → **Confirm merge**
+6. Click **Delete branch** (recommended - keeps the repo clean)
 
-> Point out: the code is now in main. Everyone can pull it.
+> Point out: the code is now in main. Everyone can pull it. The PR has a full history of the conversation and all commits - this is valuable documentation of why decisions were made.
+> 
 
 ## Part 2: Tobeyforce Works on a Feature
 
 > Goal: show how the second developer stays in sync and creates their own feature
+> 
 
 ### Tobeyforce pulls and starts working (with a realistic mistake)
 
@@ -230,6 +313,7 @@ git log --oneline -5
 ```
 
 > Point out to students: you can see ua-tobias's merged PR commit in the log now. `git log` is how you see what happened while you were away.
+> 
 
 Now, let's simulate a common mistake. Tobeyforce starts editing `main.py` directly on main - adding a delete endpoint. They write a few lines and then realize: "Wait, I should be on a feature branch."
 
@@ -240,6 +324,7 @@ git stash
 ```
 
 > Explain: `git stash` takes your uncommitted changes and puts them aside temporarily. Your working directory is now clean, as if you never made those changes.
+> 
 
 ```bash
 git switch -c feature/delete-product
@@ -247,6 +332,7 @@ git stash pop
 ```
 
 > `git stash pop` brings the changes back onto the new branch. Crisis averted - this happens all the time in real development.
+> 
 
 Now continue editing `main.py` - add the delete endpoint after the get endpoint:
 
@@ -284,6 +370,7 @@ Same flow as Part 1 but roles reversed:
 2. ua-tobias's browser: review, approve, merge
 
 > This reinforces the pattern. Students see it works the same regardless of who does what.
+> 
 
 ### ua-tobias pulls the latest main
 
@@ -296,10 +383,12 @@ git log --oneline -5
 ```
 
 > Now both developers are up to date with main, which has both the GET and DELETE endpoints. Point out the log - students can see both merged PRs in the history.
+> 
 
 ## Part 3: Pulling From a Colleague's Branch
 
 > Goal: show that you can pull code from any branch, not just main. This happens constantly in real teams - "hey, push your branch, I need that code you wrote."
+> 
 
 ### ua-tobias starts a new feature that depends on Tobeyforce's work
 
@@ -313,7 +402,7 @@ git pull
 git switch -c feature/add-updated-at
 ```
 
-Edit **models.py** - add the timestamp:
+Edit [**models.py**](http://models.py/) - add the timestamp:
 
 ```python
 from sqlalchemy import Integer, String, Float, func
@@ -321,7 +410,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
 
 from database import Base
-
 
 class Product(Base):
     __tablename__ = "products"
@@ -343,6 +431,7 @@ git push -u origin feature/add-updated-at
 ```
 
 > Explain to students: Tobeyforce pushed the branch to GitHub but hasn't opened a PR. The code isn't in main. It's just on a remote branch.
+> 
 
 ### ua-tobias pulls Tobeyforce's branch directly
 
@@ -361,6 +450,7 @@ git pull origin feature/add-updated-at
 ```
 
 > Explain: this is `git pull origin <branch-name>` - it fetches and merges that specific branch into whatever branch you're currently on. You're not pulling from main, you're pulling from a colleague's feature branch.
+> 
 
 Check that the `updated_at` field is now in ua-tobias's code:
 
@@ -369,6 +459,7 @@ git log --oneline -5
 ```
 
 > Students should see Tobeyforce's commit in ua-tobias's branch history. This is how you share work-in-progress code between developers without going through main.
+> 
 
 Now ua-tobias can build the update endpoint in `main.py`:
 
@@ -387,19 +478,17 @@ def update_product(product_id: int, product: ProductCreate, db: Session = Depend
     return db_product
 ```
 
-Also update the `ProductResponse` schema in **schemas.py** to include `updated_at`:
+Also update the `ProductResponse` schema in [**schemas.py**](http://schemas.py/) to include `updated_at`:
 
 ```python
 from pydantic import BaseModel
 from datetime import datetime
-
 
 class ProductCreate(BaseModel):
     name: str
     description: str = ""
     price: float
     category: str = "general"
-
 
 class ProductResponse(BaseModel):
     id: int
@@ -410,7 +499,7 @@ class ProductResponse(BaseModel):
     updated_at: datetime
 ```
 
-Update **seed.py** - since `updated_at` has a server default, no changes needed to the seed data.
+Update [**seed.py**](http://seed.py/) - since `updated_at` has a server default, no changes needed to the seed data.
 
 Commit and push:
 
@@ -423,6 +512,7 @@ git push -u origin feature/update-product
 ```
 
 > At this point, Tobeyforce's branch should be merged first (since ua-tobias's work depends on it). Have Tobeyforce open a PR for `feature/add-updated-at`, get it reviewed and merged. Then ua-tobias opens a PR for `feature/update-product` - it should merge cleanly since it already includes Tobeyforce's changes.
+> 
 
 ### Merge both PRs
 
@@ -441,6 +531,7 @@ git log --oneline -5
 ## Part 4: Git Pull With Uncommitted Changes
 
 > Goal: answer the question every beginner asks: "do I have to commit before I can pull?"
+> 
 
 ### What happens when you pull with uncommitted changes
 
@@ -468,6 +559,7 @@ Two things can happen:
 2. **If the pull changes the same file** you edited → git will refuse with: `error: Your local changes to the following files would be overwritten by merge`
 
 > Explain to students: git is protecting you. It won't silently overwrite your work.
+> 
 
 ### The two ways to handle it
 
@@ -482,6 +574,7 @@ git pull
 ```
 
 > This is the cleanest option. Your work is saved as a commit. If the pull causes a conflict, you resolve it like any other merge conflict.
+> 
 
 **Option B: Stash, pull, then unstash**
 
@@ -494,6 +587,7 @@ git stash pop
 ```
 
 > Your changes are put aside, the pull runs cleanly, then your changes come back on top.
+> 
 
 ### Clean up
 
@@ -504,10 +598,12 @@ git checkout -- main.py
 ```
 
 > Tell students: the rule is simple. **Git operates on commits.** Pulling and merging are operations between commits, not between random unsaved file states. Either commit or stash before you pull/merge.
+> 
 
 ## Part 5: Merge Conflict
 
 > Goal: show what happens when two developers modify the same code. This is the scary part for beginners - demystify it.
+> 
 
 ### What happens if you merge with uncommitted changes?
 
@@ -532,6 +628,7 @@ git switch main
 Git will either refuse (`error: Your local changes would be overwritten`) or carry the changes with you if there's no conflict. Either way, it's unpredictable.
 
 > Explain: **always commit before switching branches or merging.** A merge is a combination of two sets of commits. If you have uncommitted changes floating around, git doesn't know what to do with them. Commit or stash first.
+> 
 
 Clean up:
 
@@ -560,17 +657,17 @@ git switch -c feature/add-category-field
 ```
 
 > Explain: both developers are starting from the same code, but they're about to change the same files.
+> 
 
 ### ua-tobias adds a `description` field
 
-**models.py** - add the field to the Product class:
+[**models.py**](http://models.py/) - add the field to the Product class:
 
 ```python
 from sqlalchemy import Integer, String, Float
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
-
 
 class Product(Base):
     __tablename__ = "products"
@@ -581,17 +678,15 @@ class Product(Base):
     price: Mapped[float] = mapped_column(Float)
 ```
 
-**schemas.py** - add description to the schemas:
+[**schemas.py**](http://schemas.py/) - add description to the schemas:
 
 ```python
 from pydantic import BaseModel
-
 
 class ProductCreate(BaseModel):
     name: str
     description: str = ""
     price: float
-
 
 class ProductResponse(BaseModel):
     id: int
@@ -600,7 +695,7 @@ class ProductResponse(BaseModel):
     price: float
 ```
 
-**seed.py** - update seed data:
+[**seed.py**](http://seed.py/) - update seed data:
 
 ```python
 from database import Base, engine, SessionLocal
@@ -639,15 +734,15 @@ git push -u origin feature/add-description-field
 ### Tobeyforce adds a `category` field
 
 > While ua-tobias was working, Tobeyforce was also working - they don't know about each other's changes yet.
+> 
 
-**models.py** - add the field to the Product class:
+[**models.py**](http://models.py/) - add the field to the Product class:
 
 ```python
 from sqlalchemy import Integer, String, Float
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
-
 
 class Product(Base):
     __tablename__ = "products"
@@ -658,17 +753,15 @@ class Product(Base):
     category: Mapped[str] = mapped_column(String(100), default="general")
 ```
 
-**schemas.py** - add category to the schemas:
+[**schemas.py**](http://schemas.py/) - add category to the schemas:
 
 ```python
 from pydantic import BaseModel
-
 
 class ProductCreate(BaseModel):
     name: str
     price: float
     category: str = "general"
-
 
 class ProductResponse(BaseModel):
     id: int
@@ -677,7 +770,7 @@ class ProductResponse(BaseModel):
     category: str
 ```
 
-**seed.py** - update seed data:
+[**seed.py**](http://seed.py/) - update seed data:
 
 ```python
 from database import Base, engine, SessionLocal
@@ -718,13 +811,15 @@ git push -u origin feature/add-category-field
 2. Tobeyforce's browser: review, approve, merge
 
 > Main now has the description field.
+> 
 
 ### Tobeyforce opens a PR - conflict!
 
 1. Tobeyforce's browser: open PR for `feature/add-category-field`
 2. GitHub will show: **This branch has conflicts that must be resolved**
 
-> Stop here and explain to students: both developers changed the same files (models.py, schemas.py, seed.py). Git doesn't know how to combine them automatically. This is a merge conflict.
+> Stop here and explain to students: both developers changed the same files ([models.py](http://models.py/), [schemas.py](http://schemas.py/), [seed.py](http://seed.py/)). Git doesn't know how to combine them automatically. This is a merge conflict.
+> 
 
 ### Tobeyforce resolves the conflict locally
 
@@ -747,20 +842,20 @@ Git will report conflicts. Open the files in VS Code - you'll see conflict marke
 ```
 
 > Walk through what these markers mean:
+> 
 > - Everything between `<<<<<<< HEAD` and `=======` is Tobeyforce's version (current branch)
 > - Everything between `=======` and `>>>>>>> main` is what's on main (ua-tobias's merged work)
 > - We want BOTH fields, so we keep both
 
 Resolve each file. The final versions should have both `description` and `category`:
 
-**models.py** after resolving:
+[**models.py**](http://models.py/) after resolving:
 
 ```python
 from sqlalchemy import Integer, String, Float
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
-
 
 class Product(Base):
     __tablename__ = "products"
@@ -772,18 +867,16 @@ class Product(Base):
     category: Mapped[str] = mapped_column(String(100), default="general")
 ```
 
-**schemas.py** after resolving:
+[**schemas.py**](http://schemas.py/) after resolving:
 
 ```python
 from pydantic import BaseModel
-
 
 class ProductCreate(BaseModel):
     name: str
     description: str = ""
     price: float
     category: str = "general"
-
 
 class ProductResponse(BaseModel):
     id: int
@@ -793,7 +886,7 @@ class ProductResponse(BaseModel):
     category: str
 ```
 
-**seed.py** after resolving:
+[**seed.py**](http://seed.py/) after resolving:
 
 ```python
 from database import Base, engine, SessionLocal
@@ -834,10 +927,11 @@ Back in Tobeyforce's browser (or ua-tobias reviews):
 2. Review, approve, merge
 
 > Final takeaway for students: merge conflicts aren't errors. They're git asking "I see two changes to the same code, which one do you want?" - and often the answer is "both".
+> 
 
-## Part 6: Both Developers Sync Up
+## Part 6: Sync Up and Clean Up
 
-Both developers should end the demo with the latest code:
+Both developers pull the latest main:
 
 ```bash
 # ua-tobias's terminal
@@ -850,6 +944,46 @@ git pull
 ```
 
 > Both now have identical code with both the description and category fields, plus the GET and DELETE endpoints. This is the normal rhythm of teamwork with git.
+
+### Cleaning up old branches
+
+After several PRs, both developers have accumulated local branches that are already merged. Check:
+
+```bash
+git branch
+```
+
+You'll see something like:
+
+```
+  feature/add-category-field
+  feature/add-description-field
+  feature/delete-product
+  feature/get-product-by-id
+  feature/update-product
+* main
+```
+
+These branches served their purpose - they've all been merged via PRs. Delete them:
+
+```bash
+git branch -d feature/get-product-by-id
+git branch -d feature/delete-product
+git branch -d feature/add-description-field
+git branch -d feature/update-product
+# etc.
+```
+
+> The `-d` flag only deletes branches that have already been merged. Git will refuse if the branch has unmerged work, protecting you from accidentally losing code.
+
+To also clean up references to remote branches that were deleted on GitHub (e.g. after clicking "Delete branch" on a merged PR):
+
+```bash
+git fetch --prune
+```
+
+> Tell students: do this regularly. In a real project, you'll create dozens of branches over time. If you never clean up, `git branch` becomes a wall of noise and you can't tell what's current.
+> 
 
 ## Alternative: The Forking Workflow
 
@@ -870,11 +1004,11 @@ There's another strategy called the **forking workflow**, mostly used in open so
 
 ```bash
 # Clone your fork
-git clone https://github.com/Tobeyforce/some-project.git
+git clone <https://github.com/Tobeyforce/some-project.git>
 cd some-project
 
 # Add the original repo as "upstream" so you can pull updates from it
-git remote add upstream https://github.com/original-owner/some-project.git
+git remote add upstream <https://github.com/original-owner/some-project.git>
 
 # Now you have two remotes:
 git remote -v
@@ -894,11 +1028,77 @@ git push origin main        # update your fork's main
 ### When to use which
 
 | Workflow | Use when |
-|----------|----------|
+| --- | --- |
 | **Feature branch** | You're on a team with shared repo access. Most companies use this. |
 | **Forking** | You're contributing to a project you don't own. Open source contributions, or organizations that want stricter access control. |
 
 > The core git skills (branches, PRs, merge conflicts) are the same in both workflows. The only difference is where you push: same repo (branch workflow) vs your own copy (forking workflow).
+> 
+
+## Keeping a Clean History: Squashing
+
+During the demo, you may have noticed that some PRs had multiple commits (e.g. the first PR had "Add GET /products/{id} endpoint" and then "Add warning log for missing product lookups"). When merged normally, all those commits appear individually in main's history.
+
+On a small project this is fine. On a larger project with multiple developers making several commits per feature, main's history can become noisy and hard to read.
+
+### Squash and merge (on GitHub)
+
+When merging a PR on GitHub, you can choose **Squash and merge** instead of the regular **Merge pull request**. This combines all commits from the branch into a single commit on main.
+
+Example - a PR with these commits:
+
+```
+feat: Add GET /products/{id} endpoint
+fix: Add warning log for missing product lookups
+fix: Typo in log message
+```
+
+With **Squash and merge**, main gets one clean commit: `Add GET /products/{id} endpoint (#1)`
+
+Many teams set this as the default (or only) merge strategy in the repo settings:
+
+> GitHub repo → Settings → General → Pull Requests → select "Allow squash merging" and optionally disable the other options.
+
+### Squashing locally with `git rebase -i`
+
+You can also squash commits before pushing, without relying on GitHub's squash merge. This is useful when you want to clean up your branch before opening a PR.
+
+Say you're on a feature branch and made 3 commits:
+
+```bash
+git log --oneline -3
+# a1b2c3d Fix typo in log message
+# d4e5f6g Add warning log for missing product lookups
+# h7i8j9k Add GET /products/{id} endpoint
+```
+
+You can squash them into one:
+
+```bash
+git rebase -i HEAD~3
+```
+
+This opens an editor showing your 3 commits. Change `pick` to `squash` (or `s`) for the commits you want to combine:
+
+```
+pick h7i8j9k Add GET /products/{id} endpoint
+squash d4e5f6g Add warning log for missing product lookups
+squash a1b2c3d Fix typo in log message
+```
+
+Save and close. Git will open another editor where you can write one combined commit message. Now your branch has one clean commit instead of three.
+
+> **Warning**: Only squash commits that haven't been pushed yet, or commits on a branch that only you are working on. Squashing rewrites history - if someone else has already pulled your branch, this will cause problems for them.
+
+### When to squash
+
+| Approach | When to use |
+|----------|-------------|
+| **Squash and merge** (GitHub) | Team wants a clean main history. Each PR = one commit. Most common approach. |
+| **Regular merge** | Team wants full commit history preserved. Useful for detailed audit trails. |
+| **Interactive rebase** | You want to clean up your own branch before opening a PR. More advanced. |
+
+> A lot of teams use squash merge as their default. It keeps `git log` on main readable - each entry is one feature or fix, not dozens of "WIP" and "fix typo" commits.
 
 ## Quick Reference
 
@@ -907,7 +1107,7 @@ git push origin main        # update your fork's main
 These are the commands professional developers run constantly - not just occasionally:
 
 | Command | When you use it | How often |
-|---------|----------------|-----------|
+| --- | --- | --- |
 | `git status` | Before staging, before committing, when confused | 20+ times a day |
 | `git diff` | Before `git add`, to review what you're about to stage | Before every commit |
 | `git branch` | Check what branch you're on before starting work | Start of every task |
