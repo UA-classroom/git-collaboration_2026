@@ -8,12 +8,8 @@ from schemas import ProductCreate, ProductResponse
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-<<<<<<< Updated upstream
-# Comment from main
-=======
 # Product API - v2
 
->>>>>>> Stashed changes
 
 @app.get("/products", response_model=list[ProductResponse])
 def get_products(db: Session = Depends(get_db)):
