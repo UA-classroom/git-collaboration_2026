@@ -2,6 +2,7 @@ from database import Base, SessionLocal, engine
 from models import Product
 
 # Test
+# Test 2
 
 Base.metadata.create_all(bind=engine)
 
