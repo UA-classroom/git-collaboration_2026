@@ -8,7 +8,7 @@ from schemas import ProductCreate, ProductResponse
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
+# Comment from main
 
 @app.get("/products", response_model=list[ProductResponse])
 def get_products(db: Session = Depends(get_db)):
